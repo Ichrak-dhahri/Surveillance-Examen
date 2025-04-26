@@ -3,24 +3,24 @@ const mongoose = require("mongoose");
 
 const calendrierSchema = new mongoose.Schema({
   date: {
-    type: String,
+    type: String,  // Correction ici: "Date" avec D majuscule
     required: true
   },
   seance: {
-    type: String, 
+    type: String,
     required: true
   },
   CodeMatiere: {
     type: String,
     required: true
   },
+  specialite: {
+    type: String,
+    default: ""
+  },
   filiere: {
     type: String,
     required: true
-  },
-  specialite: {
-    type: String,
-    default: ""  // Champ optionnel, valeur par défaut vide
   }
 });
 

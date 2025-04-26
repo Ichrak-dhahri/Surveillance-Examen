@@ -10,48 +10,45 @@ exports.processExcelFile = async (filePath, Model, columnMapping) => {
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
 
-  // Lecture de toutes les lignes
   const allRows = xlsx.utils.sheet_to_json(worksheet, { header: 1, raw: false });
-
-  // Extraction des noms de colonnes (première ligne)
   const headerRow = allRows[0];
 
-  // Ignorer la première ligne et préparer les données pour MongoDB
   const dataRows = allRows.slice(1).map(row => {
     const item = {};
-    
-    // Pour chaque cellule dans la ligne
+
     headerRow.forEach((header, index) => {
-      if (header) {
-        const value = row[index];
-        // Mapper les noms des colonnes Excel aux noms des champs du schéma
-        const schemaField = columnMapping[header.toLowerCase().trim()] || header.toLowerCase().replace(/ /g, '_');
-        
-        // Ne pas ajouter les champs vides (undefined)
-        if (value !== undefined) {
-          item[schemaField] = value;
-        } else {
-          // Ajouter une chaîne vide pour les champs obligatoires qui sont manquants
-          if (Model.schema.paths[schemaField] && Model.schema.paths[schemaField].isRequired) {
-            item[schemaField] = "";
-          }
+      if (!header) return;
+
+      const cleanedHeader = header.trim();
+      const mappingKey = Object.keys(columnMapping).find(
+        key => key.toLowerCase() === cleanedHeader.toLowerCase()
+      );
+      const schemaField = columnMapping[mappingKey] || cleanedHeader.replace(/ /g, '_');
+
+      const value = row[index];
+
+      // Gestion spéciale des dates Excel (numériques)
+      if (schemaField === 'date') {
+        if (typeof value === 'number') {
+          item[schemaField] = new Date((value - 25569) * 86400 * 1000); // Excel -> JS Date
+        } else if (typeof value === 'string') {
+          item[schemaField] = new Date(value);
         }
+      } else {
+        item[schemaField] = value !== undefined ? value : "";
       }
     });
-    
+
     return item;
   });
 
-  // Filtrer les lignes vides
-  const validRows = dataRows.filter(row => Object.keys(row).length > 0);
-
-  // Vérification des données avant insertion
-  console.log(`Données à insérer pour ${Model.modelName}:`, JSON.stringify(validRows.slice(0, 2), null, 2));
-
-  // Supprimer les données existantes pour ce modèle
+  // Supprimer les documents existants avant insertion
   await Model.deleteMany({});
 
-  // Insérer les nouvelles données
+  const validRows = dataRows.filter(row => Object.values(row).some(v => v !== ""));
+
+  console.log(`Données à insérer pour ${Model.modelName}:`, JSON.stringify(validRows.slice(0, 2), null, 2));
+
   if (validRows.length > 0) {
     await Model.insertMany(validRows);
     console.log(`✅ ${validRows.length} enregistrements importés avec succès dans ${Model.modelName}`);
@@ -93,7 +90,7 @@ exports.updateTeacherCourses = async () => {
     // Mettre à jour chaque enseignant avec ses matières
     for (const [teacherName, courses] of Object.entries(coursesByTeacher)) {
       const result = await Surveillance.updateOne(
-        { nom_et_prenom: teacherName },
+        { Nom: teacherName }, // Modifié de nom_et_prenom à Nom
         { $set: { CodeMatiere: courses } }
       );
       
@@ -107,7 +104,8 @@ exports.updateTeacherCourses = async () => {
     throw error;
   }
 };
-// Fonction à ajouter dans schedulingController.js
+
+// Association des enseignants et des cours
 exports.associateTeachersAndCourses = async () => {
   try {
     // 1. Récupérer toutes les répartitions, calendriers et surveillances
@@ -141,7 +139,7 @@ exports.associateTeachersAndCourses = async () => {
           // 5. Si on trouve un enseignant, mettre à jour la répartition
           await Repartition.updateOne(
             { _id: repartition._id },
-            { $set: { enseignant: matchingEnseignant.nom_et_prenom } }
+            { $set: { enseignant: matchingEnseignant.Nom } } // Modifié de nom_et_prenom à Nom
           );
         }
       }
@@ -158,9 +156,10 @@ exports.associateTeachersAndCourses = async () => {
 // Algorithme de génération du planning de surveillance
 exports.generateSurveillanceSchedule = async () => {
   try {
-    // Récupérer tous les examens et enseignants de la base de données
+    // Récupérer tous les examens, enseignants et répartitions
     const exams = await Calendrier.find().lean();
     const teachers = await Surveillance.find().lean();
+    const roomAssignments = await Repartition.find().lean();
 
     if (exams.length === 0) {
       throw new Error("Aucun examen trouvé dans la base de données");
@@ -171,9 +170,6 @@ exports.generateSurveillanceSchedule = async () => {
     }
 
     console.log(`Nombre d'examens: ${exams.length}, Nombre d'enseignants: ${teachers.length}`);
-
-    // Initialiser le tableau du planning
-    const schedule = [];
 
     // Organiser les sessions d'examen par date et horaire
     const examsByDateAndSession = {};
@@ -193,17 +189,41 @@ exports.generateSurveillanceSchedule = async () => {
     teachers.forEach(teacher => {
       const teacherId = teacher._id.toString();
       teacherAssignments[teacherId] = [];
-      teacherSurveillanceRemaining[teacherId] = teacher.nombre_de_seance_de_surveillance || 0;
+      teacherSurveillanceRemaining[teacherId] = teacher.Surveillance || 0; // Modifié de nombre_de_seance_de_surveillance à Surveillance
     });
+
+    // Regrouper les groupes par salle
+    const groupsByRoom = {};
+    roomAssignments.forEach(assignment => {
+      if (!groupsByRoom[assignment.salle]) {
+        groupsByRoom[assignment.salle] = [];
+      }
+      groupsByRoom[assignment.salle].push(assignment.groupe);
+    });
+
+    // Structure pour stocker les affectations finales
+    const finalSchedule = {};
 
     // Traiter les examens par date et session
     const dateSessionKeys = Object.keys(examsByDateAndSession);
-    dateSessionKeys.sort(); // Trier chronologiquement
+    dateSessionKeys.sort();
 
     for (const dateSessionKey of dateSessionKeys) {
       const currentExams = examsByDateAndSession[dateSessionKey];
-      const [date, session] = dateSessionKey.split('_');
-
+      const [dateStr, session] = dateSessionKey.split('_');
+      const date = new Date(dateStr);
+      
+      // Préparer la structure pour cette date/session
+      if (!finalSchedule[dateStr]) {
+        finalSchedule[dateStr] = {};
+      }
+      if (!finalSchedule[dateStr][session]) {
+        finalSchedule[dateStr][session] = {
+          surveillants: [],
+          reserveProfs: []
+        };
+      }
+      
       // Créer une map des enseignants par matière
       const teachersByMatiere = {};
       teachers.forEach(teacher => {
@@ -218,89 +238,184 @@ exports.generateSurveillanceSchedule = async () => {
         }
       });
 
-      // Affecter des surveillants à chaque examen de cette session
+      // Affecter les examens aux salles en respectant les contraintes des groupes
+      const assignedRooms = {};
+      
       for (const exam of currentExams) {
-        const supervisors = [];
+        // Trouver la salle pour cet examen selon le fichier de répartition
+        const examGroups = [exam.filiere];
+        if (exam.specialite) examGroups.push(exam.specialite);
         
-        // Priorité 1: Enseignants qui enseignent cette matière
-        if (teachersByMatiere[exam.CodeMatiere]) {
-          for (const teacherId of teachersByMatiere[exam.CodeMatiere]) {
-            // Vérifier si l'enseignant a encore des créneaux disponibles et n'est pas déjà assigné à cette session
-            if (
-              teacherSurveillanceRemaining[teacherId] > 0 &&
-              !teacherAssignments[teacherId].some(a => a.date === date && a.session === session)
-            ) {
-              supervisors.push(teacherId);
-              teacherSurveillanceRemaining[teacherId]--;
-              teacherAssignments[teacherId].push({
-                date,
-                session,
-                examId: exam._id.toString(),
-                matiere: exam.CodeMatiere
-              });
-              
-              // Si nous avons 2 superviseurs, c'est suffisant
-              if (supervisors.length >= 2) break;
-            }
+        let assignedRoom = null;
+        
+        // Chercher la salle qui contient ce groupe
+        for (const [room, groups] of Object.entries(groupsByRoom)) {
+          if (groups.some(g => examGroups.includes(g))) {
+            assignedRoom = room;
+            break;
           }
         }
         
+        if (!assignedRoom) {
+          console.log(`Aucune salle trouvée pour l'examen: ${exam.CodeMatiere} (${exam.filiere}/${exam.specialite || ""})`);
+          continue;
+        }
+        
+        // Ajouter l'examen à la salle assignée
+        if (!assignedRooms[assignedRoom]) {
+          assignedRooms[assignedRoom] = [];
+        }
+        assignedRooms[assignedRoom].push(exam);
+      }
+      
+      console.log(`${dateStr} ${session} - Nombre de salles: ${Object.keys(assignedRooms).length}`);
+      
+      // Liste des enseignants déjà assignés à cette date/session
+      const assignedTeachers = new Set();
+      
+      // Affecter des surveillants à chaque salle
+      for (const [room, roomExams] of Object.entries(assignedRooms)) {
+        const supervisors = [];
+        const examCodesInRoom = roomExams.map(e => e.CodeMatiere);
+        
+        // Priorité 1: Enseignants qui enseignent ces matières
+        const potentialTeachers = new Set();
+        examCodesInRoom.forEach(code => {
+          if (teachersByMatiere[code]) {
+            teachersByMatiere[code].forEach(teacherId => potentialTeachers.add(teacherId));
+          }
+        });
+        
+        for (const teacherId of potentialTeachers) {
+          // Vérifier si l'enseignant a encore des créneaux disponibles et n'est pas déjà assigné à cette session
+          if (
+            teacherSurveillanceRemaining[teacherId] > 0 &&
+            !assignedTeachers.has(teacherId)
+          ) {
+            supervisors.push(teacherId);
+            teacherSurveillanceRemaining[teacherId]--;
+            teacherAssignments[teacherId].push({
+              date: dateStr,
+              session
+            });
+            assignedTeachers.add(teacherId);
+            
+            // Si nous avons 2 superviseurs, c'est suffisant
+            if (supervisors.length >= 2) break;
+          }
+        }
+
         // Priorité 2: Autres enseignants qui ont le plus de créneaux restants
         if (supervisors.length < 2) {
           const eligibleTeachers = teachers
             .filter(teacher => {
               const teacherId = teacher._id.toString();
               return teacherSurveillanceRemaining[teacherId] > 0 &&
-                !teacherAssignments[teacherId].some(a => a.date === date && a.session === session) &&
-                !supervisors.includes(teacherId);
+                !assignedTeachers.has(teacherId);
             })
             .sort((a, b) => {
               const aId = a._id.toString();
               const bId = b._id.toString();
               return teacherSurveillanceRemaining[bId] - teacherSurveillanceRemaining[aId];
             });
-          
+
           for (const teacher of eligibleTeachers) {
             if (supervisors.length >= 2) break;
-            
             const teacherId = teacher._id.toString();
             supervisors.push(teacherId);
             teacherSurveillanceRemaining[teacherId]--;
             teacherAssignments[teacherId].push({
-              date,
-              session,
-              examId: exam._id.toString(),
-              matiere: exam.CodeMatiere
+              date: dateStr,
+              session
+            });
+            assignedTeachers.add(teacherId);
+          }
+        }
+        
+        // Ajouter les surveillants au planning
+        for (const supervisorId of supervisors) {
+          const teacher = teachers.find(t => t._id.toString() === supervisorId);
+          if (teacher) {
+            finalSchedule[dateStr][session].surveillants.push({
+              nom: teacher.Nom // Modifié de nom_et_prenom à Nom
             });
           }
         }
-
-        // Ajouter au planning même si nous n'avons pas 2 superviseurs
-        schedule.push({
-          exam: exam,
-          supervisors
+      }
+      
+      // Ajouter 2-3 enseignants de réserve pour cette date/session
+      const reserveCount = 3;
+      const eligibleForReserve = teachers
+        .filter(teacher => {
+          const teacherId = teacher._id.toString();
+          return teacherSurveillanceRemaining[teacherId] > 0 && 
+                !assignedTeachers.has(teacherId);
+        })
+        .sort((a, b) => {
+          const aId = a._id.toString();
+          const bId = b._id.toString();
+          return teacherSurveillanceRemaining[bId] - teacherSurveillanceRemaining[aId];
+        });
+      
+      for (const teacher of eligibleForReserve) {
+        if (finalSchedule[dateStr][session].reserveProfs.length >= reserveCount) break;
+        const teacherId = teacher._id.toString();
+        finalSchedule[dateStr][session].reserveProfs.push({
+          nom: teacher.Nom // Modifié de nom_et_prenom à Nom
+        });
+        teacherSurveillanceRemaining[teacherId]--;
+        teacherAssignments[teacherId].push({
+          date: dateStr,
+          session,
+          reserve: true
         });
       }
     }
 
-    // Convertir les ID des enseignants en noms
-    const readableSchedule = await Promise.all(schedule.map(async item => {
-      const supervisorDetails = await Promise.all(item.supervisors.map(async id => {
-        const teacher = await Surveillance.findById(id);
-        return teacher ? teacher.nom_et_prenom : 'Inconnu';
-      }));
+    // Formater la sortie finale simplifiée
+    const simplifiedSchedule = [];
+    
+    for (const [dateStr, sessions] of Object.entries(finalSchedule)) {
+      for (const [session, data] of Object.entries(sessions)) {
+        // Formater la date pour l'affichage
+        const date = new Date(dateStr);
+        const formattedDate = date.toLocaleDateString('fr-FR', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        
+        // Ajouter les surveillants réguliers
+        for (const surveillant of data.surveillants) {
+          simplifiedSchedule.push({
+            date: formattedDate,
+            session: session,
+            nom_surveillant: surveillant.nom,
+            type: "Surveillance"
+          });
+        }
+        
+        // Ajouter les profs de réserve
+        for (const reserveProf of data.reserveProfs) {
+          simplifiedSchedule.push({
+            date: formattedDate,
+            session: session,
+            nom_surveillant: reserveProf.nom,
+            type: "Réserve"
+          });
+        }
+      }
+    }
+    
+    // Trier par date, puis par session, puis par nom
+    simplifiedSchedule.sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      if (a.session !== b.session) return a.session.localeCompare(b.session);
+      return a.nom_surveillant.localeCompare(b.nom_surveillant);
+    });
 
-      return {
-        date: item.exam.date,
-        seance: item.exam.seance,
-        matiere: item.exam.CodeMatiere,
-        filiere: item.exam.filiere,
-        specialite: item.exam.specialite || '',
-        surveillants: supervisorDetails
-      };
-    }));
-
-    return readableSchedule;
+    return simplifiedSchedule;
   } catch (error) {
     console.error("Erreur lors de la génération du planning:", error);
     throw error;

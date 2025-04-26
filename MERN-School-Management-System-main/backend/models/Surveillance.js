@@ -2,14 +2,14 @@
 const mongoose = require("mongoose");
 
 const surveillanceSchema = new mongoose.Schema({
-  nom_et_prenom: String,
-  departement: String,
-  grade: String,
-  cours: Number,
-  td: Number,
-  tp: Number,
+  Nom: String,
+  Département: String,
+  Grade: String, 
+  Cours: Number,
+  TD: Number,
+  TP: Number,
   coef: Number,
-  nombre_de_seance_de_surveillance: Number,
+  Surveillance: Number,
   CodeMatiere: [String] // Pour stocker les matières enseignées par cet enseignant
 });
 

@@ -1,57 +1,54 @@
-// controllers/surveillanceController.js
+// controllers/repartitionController.js
 const fs = require('fs');
-const Surveillance = require('../models/Surveillance');
+const Repartition = require('../models/Repartition');
 const schedulingController = require('./schedulingController');
 
-// Importer et traiter le fichier des enseignants
-exports.uploadEnseignants = async (req, res) => {
+// Importer et traiter le fichier de répartition
+exports.uploadRepartition = async (req, res) => {
   const filePath = req.file.path;
   try {
-    console.log("📊 Analyse du fichier d'enseignants...");
+    console.log("📊 Analyse du fichier de répartition...");
     const rowCount = this.logExcelContent(filePath);
     console.log(`Le fichier contient ${rowCount} lignes de données`);
 
-    // Mapping des colonnes selon les noms dans le fichier Excel
+    // Mapping des colonnes exactes pour la répartition
     const columnMapping = {
-      'Nom': 'Nom',
-      'Département': 'Département',
-      'Grade': 'Grade',
-      'Cours': 'Cours',
-      'TD': 'TD',
-      'TP': 'TP',
-      'coef': 'coef',
-      'Surveillance': 'Surveillance'
+      'salle': 'salle',
+      'groupe': 'groupe'
     };
 
-    const result = await schedulingController.processExcelFile(filePath, Surveillance, columnMapping);
+    const result = await schedulingController.processExcelFile(filePath, Repartition, columnMapping);
+
+    // Ensuite, associez les matières et enseignants aux salles et groupes
+    await schedulingController.associateTeachersAndCourses();
+
     res.json({
       success: true,
-      message: `${result.rows.length} enseignants importés avec succès`,
+      message: `${result.rows.length} répartitions importées avec succès`,
       columns: result.columns,
-      rows: result.rows.slice(0, 3) // Limiter l'affichage pour la réponse
+      rows: result.rows.slice(0, 3)
     });
   } catch (error) {
     console.error("❌ Erreur:", error);
     res.status(500).json({ success: false, error: error.message });
   } finally {
-    // Supprimer le fichier téléchargé
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
   }
 };
 
-// Récupérer tous les enseignants
-exports.getAllSurveillants = async (req, res) => {
+// Récupérer toutes les répartitions
+exports.getAllRepartitions = async (req, res) => {
   try {
-    const surveillants = await Surveillance.find().lean();
+    const repartitions = await Repartition.find().lean();
     res.json({
       success: true,
-      count: surveillants.length,
-      data: surveillants
+      count: repartitions.length,
+      data: repartitions
     });
   } catch (error) {
-    console.error("❌ Erreur lors de la récupération des enseignants:", error);
+    console.error("❌ Erreur lors de la récupération des répartitions:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
