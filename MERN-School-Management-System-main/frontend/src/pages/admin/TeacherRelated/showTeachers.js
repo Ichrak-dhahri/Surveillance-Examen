@@ -125,7 +125,7 @@ const ShowTeachers = () => {
               ))}
               <StyledTableCell align="center">Actions</StyledTableCell>
             </StyledTableRow>
-          </TableHead>
+          </TableHead>git commit
           <TableBody>
             {rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => (
               <StyledTableRow key={row.id}>
