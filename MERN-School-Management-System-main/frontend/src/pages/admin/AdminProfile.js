@@ -41,15 +41,7 @@ const AdminProfile = () => {
                                 </div>
                             </div>
 
-                            <div className="info-item mb-3 p-3 bg-light rounded-3">
-                                <div className="d-flex align-items-center">
-                                    <i className="bi bi-building me-3 text-primary"></i>
-                                    <div>
-                                        <div className="text-muted small">Établissement</div>
-                                        <div className="fw-semibold">{currentUser.schoolName}</div>
-                                    </div>
-                                </div>
-                            </div>
+                          
                         </div>
                     </Card.Body>
                 </Card>

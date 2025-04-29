@@ -1,45 +1,85 @@
-const router = require('express').Router();
+const express = require('express');
+const router = express.Router();
 const multer = require('multer');
-const { adminRegister, adminLogIn, getAdminDetail} = require('../controllers/admin-controller.js');
-const { teacherRegister, teacherLogIn, getTeachers, getTeacherDetail, deleteTeachers, deleteTeacher } = require('../controllers/teacher-controller.js');
-// Admin
+
+// Import middlewares
+const { protect, teacher, admin } = require('../middleware/authMiddleware.js');
+
+// Import controllers
+const {
+  registerTeacher,
+  getTeacherProfile,
+  updateTeacherProfile,
+  changePassword
+} = require('../controllers/teacherController.js');
+
+const {
+  authTeacher,
+  checkAuthStatus
+} = require('../controllers/authController.js');
+
+const {
+  authAdmin,
+  getTeacherRequests,
+  getTeacherById,
+  approveTeacher,
+  rejectTeacher,
+  registerAdmin,
+  adminRegister,
+  adminLogIn,
+  getAdminDetail
+} = require('../controllers/admin-controller.js');
+
+const surveillanceController = require('../controllers/surveillanceController.js');
+const calendrierController = require('../controllers/calendrierController.js');
+const repartitionController = require('../controllers/repartitionController.js');
+const planningController = require('../controllers/planningController.js');
+
+// Multer configuration for file uploads
+const upload = multer({ dest: "uploads/" });
+
+/* --------------------------------- Teacher Routes --------------------------------- */
+router.post('/teachers/register', registerTeacher);
+router.get('/teachers/profile', protect, teacher, getTeacherProfile);
+router.put('/teachers/profile', protect, teacher, updateTeacherProfile);
+router.put('/teachers/:id/change-password', changePassword);
+
+/* --------------------------------- Auth Routes --------------------------------- */
+router.post('/auth/login', authTeacher);
+router.get('/auth/status', protect, checkAuthStatus);
+
+/* --------------------------------- Admin Auth & Admin Management --------------------------------- */
+
+// Admin Teachers Requests
+router.get('/admin/teachers', getTeacherRequests);
+router.get('/admin/teachers/:id', protect, admin, getTeacherById);
+router.put('/admin/teachers/:id/approve', approveTeacher);
+router.put('/admin/teachers/:id/reject', protect, admin, rejectTeacher);
+
+// Admin Profile
 router.post('/AdminReg', adminRegister);
 router.post('/AdminLogin', adminLogIn);
-router.get("/Admin/:id", getAdminDetail)
-// Teacher
-router.post('/TeacherReg', teacherRegister);
-router.post('/TeacherLogin', teacherLogIn)
-router.get("/Teachers/:id", getTeachers)
-router.get("/Teacher/:id", getTeacherDetail)
-router.delete("/Teachers/:id", deleteTeachers)
-router.delete("/Teacher/:id", deleteTeacher)
-//Routes Manel
+router.get('/Admin/:id', getAdminDetail);
 
-// Importer les contrôleurs
-const surveillanceController = require('../controllers/surveillanceController');
-const calendrierController = require('../controllers/calendrierController');
-const repartitionController = require('../controllers/repartitionController');
-const planningController = require('../controllers/planningController');
-// Configuration de multer pour les téléchargements de fichiers
-const upload = multer({ dest: "uploads/" });
-// Routes pour la gestion des enseignants/surveillances
-router.post("/upload-enseignants", upload.single("file"), surveillanceController.uploadEnseignants);
-router.get("/enseignants", surveillanceController.getAllSurveillants);
+/* --------------------------------- Surveillance Routes --------------------------------- */
+router.post('/upload-enseignants', upload.single("file"), surveillanceController.uploadEnseignants);
+router.get('/enseignants', surveillanceController.getAllSurveillants);
+router.delete('/deleteenseignants', surveillanceController.deleteAllSurveillants);
+router.post('/enseignantsAdd', surveillanceController.addSurveillant);
+router.delete('/deleteenseignants/:id', surveillanceController.deleteSurveillantById);
 
-// Routes pour la gestion du calendrier des examens
-router.post("/upload-calendrier", upload.single("file"), calendrierController.uploadCalendrier);
-router.get("/examens", calendrierController.getAllExams);
+/* --------------------------------- Calendrier Routes --------------------------------- */
+router.post('/upload-calendrier', upload.single("file"), calendrierController.uploadCalendrier);
+router.get('/examens', calendrierController.getAllExams);
 
-// Routes pour la gestion de la répartition
-router.post("/upload-repartition", upload.single("file"), repartitionController.uploadRepartition);
-router.get("/repartitions", repartitionController.getAllRepartitions);
+/* --------------------------------- Répartition Routes --------------------------------- */
+router.post('/upload-repartition', upload.single("file"), repartitionController.uploadRepartition);
+router.get('/repartitions', repartitionController.getAllRepartitions);
 
-// Routes pour la planification et la vérification des données
-router.get("/check-data", planningController.checkData);
-router.post("/generate-schedule", planningController.generateSchedule);
-router.get("/surveillance-schedule", planningController.getSurveillanceSchedule);
+/* --------------------------------- Planning Routes --------------------------------- */
+router.get('/check-data', planningController.checkData);
+router.post('/generate-schedule', planningController.generateSchedule);
+router.get('/surveillance-schedule', planningController.getSurveillanceSchedule);
 
-
-
-
+// Export router
 module.exports = router;

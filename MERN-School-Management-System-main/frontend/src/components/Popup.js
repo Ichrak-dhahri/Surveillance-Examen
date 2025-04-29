@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useDispatch } from 'react-redux';
 import { underControl } from '../redux/userRelated/userSlice';
-import { underStudentControl } from '../redux/studentRelated/studentSlice';
+
 import MuiAlert from '@mui/material/Alert';
 import { Snackbar } from '@mui/material';
 
@@ -17,7 +17,7 @@ const Popup = ({ message, setShowPopup, showPopup }) => {
         }
         setShowPopup(false);
         dispatch(underControl())
-        dispatch(underStudentControl())
+    
     };
 
     return (

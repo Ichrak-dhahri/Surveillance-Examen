@@ -113,7 +113,7 @@ const AdminRegisterPage = () => {
                             />
                             <TextField
                                 margin="normal"
-                                required
+                               
                                 fullWidth
                                 id="schoolName"
                                 label="Create your school name"
