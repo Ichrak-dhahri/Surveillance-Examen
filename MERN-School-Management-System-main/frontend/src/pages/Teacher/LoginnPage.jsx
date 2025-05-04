@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope} from '@fortawesome/free-solid-svg-icons';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Card,
+  CardContent,
+  Box,
+} from '@mui/material';
+import { Email, Lock } from '@mui/icons-material';
 
 const LoginnPage = () => {
   const [formData, setFormData] = useState({
@@ -11,10 +17,7 @@ const LoginnPage = () => {
     password: '',
   });
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Hook for navigation
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -22,122 +25,124 @@ const LoginnPage = () => {
       ...formData,
       [name]: value,
     });
-    // Clear error when field is edited
+
     if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: '',
-      });
+      setErrors({ ...errors, [name]: '' });
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
+    if (!validateForm()) return;
+
     try {
-      const { email, password } = formData;
-      const success = await login(email, password, 'teacher');
-      
-      if (success) {
-        // Redirect will be handled by the ProtectedRoute component
-        // based on isFirstLogin and user role
+      const response = await fetch('http://localhost:5000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
       }
+
+      // Save token or user info to localStorage
+      localStorage.setItem('teacherToken', data.token);
+      localStorage.setItem('teacherInfo', JSON.stringify(data));
+
+      alert('Login successful');
+
+      // Navigate to dashboard
+      navigate('/TeacherDashboard');
+
     } catch (error) {
-      console.error('Login error:', error);
-    } finally {
-      setIsSubmitting(false);
+      alert(error.message);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto fade-in">
-      <div className="card">
-        <h1 className="text-2xl font-bold text-center mb-6">Teacher Login</h1>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">
-              <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
+    <Container maxWidth="sm">
+      <Card sx={{ mt: 8, boxShadow: 3 }}>
+        <CardContent>
+          <Typography variant="h5" align="center" gutterBottom>
+            Teacher Login
+          </Typography>
+
+          <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 2 }}>
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Email Address"
               name="email"
-              className={`form-input ${errors.email ? 'border-red-500' : ''}`}
-              placeholder="Enter your email"
+              type="email"
               value={formData.email}
               onChange={handleChange}
-              disabled={isSubmitting}
+              error={!!errors.email}
+              helperText={errors.email}
+              InputProps={{
+                startAdornment: <Email sx={{ mr: 1 }} />,
+              }}
             />
-            {errors.email && <div className="form-error">{errors.email}</div>}
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">
-              <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Password"
               name="password"
-              className={`form-input ${errors.password ? 'border-red-500' : ''}`}
-              placeholder="Enter your password"
+              type="password"
               value={formData.password}
               onChange={handleChange}
-              disabled={isSubmitting}
+              error={!!errors.password}
+              helperText={errors.password}
+              InputProps={{
+                startAdornment: <Lock sx={{ mr: 1 }} />,
+              }}
             />
-            {errors.password && <div className="form-error">{errors.password}</div>}
-          </div>
-          
-          <button 
-            type="submit" 
-            className="btn btn-primary w-full py-3 mt-4"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-blue-600 hover:underline">
-              Register here
-            </Link>
-          </p>
-          <p className="text-gray-600 mt-2">
-            <Link to="/admin/login" className="text-gray-500 hover:underline text-sm">
-              Admin Login
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, py: 1.5 }}
+            >
+              Login
+            </Button>
+          </Box>
+
+          <Box mt={4} textAlign="center">
+            <Typography variant="body2">
+              Don't have an account?{' '}
+              <Link to="/Register" style={{ color: '#1976d2', textDecoration: 'none' }}>
+                Register here
+              </Link>
+            </Typography>
+            <Typography variant="body2" mt={1}>
+              <Link to="/Adminlogin" style={{ color: '#666', fontSize: '0.9rem' }}>
+                Admin Login
+              </Link>
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    </Container>
   );
 };
 

@@ -68,7 +68,7 @@ const ChangePasswordPage = () => {
     try {
       setIsSubmitting(true);
       
-      const response = await api.put('/api/teachers/change-password', {
+      const response = await api.put('/teachers/change-password', {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
       });

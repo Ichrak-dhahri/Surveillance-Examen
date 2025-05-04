@@ -2,16 +2,15 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faUserCheck, 
-  faUserTimes, 
-  faEye, 
+import {
+  faUserCheck,
+  faUserTimes,
+  faEye,
   faFilter,
-  faUserPlus,
   faSortAmountDown,
-  faSortAmountUp
+  faSortAmountUp,
 } from '@fortawesome/free-solid-svg-icons';
-import api from '../../utils/api';
+import axios from 'axios';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
 const AdminDashboardPage = () => {
@@ -23,7 +22,9 @@ const AdminDashboardPage = () => {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/api/admin/teachers?status=${statusFilter}`);
+      const response = await axios.get(
+        `http://localhost:5000/admin/teachers?status=${statusFilter}`
+      );
       setTeachers(response.data);
     } catch (error) {
       console.error('Error fetching teachers:', error);
@@ -48,14 +49,12 @@ const AdminDashboardPage = () => {
   const sortedTeachers = [...teachers].sort((a, b) => {
     const dateA = new Date(a.createdAt);
     const dateB = new Date(b.createdAt);
-    return sortDirection === 'asc' 
-      ? dateA - dateB 
-      : dateB - dateA;
+    return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
   const handleApprove = async (id) => {
     try {
-      await api.put(`/api/admin/teachers/${id}/approve`);
+      await axios.put(`http://localhost:5000/admin/teachers/${id}/approve`);
       toast.success('Teacher approved successfully');
       fetchTeachers();
     } catch (error) {
@@ -66,10 +65,10 @@ const AdminDashboardPage = () => {
 
   const handleReject = async (id) => {
     const reason = prompt('Please provide a reason for rejection:');
-    if (reason === null) return; // User canceled
+    if (reason === null) return;
 
     try {
-      await api.put(`/api/admin/teachers/${id}/reject`, { reason });
+      await axios.put(`http://localhost:5000/admin/teachers/${id}/reject`, { reason });
       toast.success('Teacher rejected successfully');
       fetchTeachers();
     } catch (error) {
@@ -95,7 +94,7 @@ const AdminDashboardPage = () => {
     <div className="fade-in">
       <div className="flex flex-col md:flex-row justify-between items-center mb-8">
         <h1 className="text-3xl font-bold mb-4 md:mb-0">Admin Dashboard</h1>
-        
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex items-center">
             <FontAwesomeIcon icon={faFilter} className="mr-2 text-gray-500" />
@@ -109,14 +108,14 @@ const AdminDashboardPage = () => {
               <option value="rejected">Rejected</option>
             </select>
           </div>
-          
-          <button 
+
+          <button
             onClick={toggleSortDirection}
             className="btn btn-outline py-1 flex items-center justify-center"
           >
-            <FontAwesomeIcon 
-              icon={sortDirection === 'asc' ? faSortAmountUp : faSortAmountDown} 
-              className="mr-2" 
+            <FontAwesomeIcon
+              icon={sortDirection === 'asc' ? faSortAmountUp : faSortAmountDown}
+              className="mr-2"
             />
             {sortDirection === 'asc' ? 'Oldest First' : 'Newest First'}
           </button>
@@ -161,7 +160,7 @@ const AdminDashboardPage = () => {
                       >
                         <FontAwesomeIcon icon={faEye} />
                       </Link>
-                      
+
                       {teacher.status === 'pending' && (
                         <>
                           <button
@@ -171,7 +170,7 @@ const AdminDashboardPage = () => {
                           >
                             <FontAwesomeIcon icon={faUserCheck} />
                           </button>
-                          
+
                           <button
                             onClick={() => handleReject(teacher._id)}
                             className="btn btn-danger py-1 px-2"
@@ -195,7 +194,7 @@ const AdminDashboardPage = () => {
           </p>
         </div>
       )}
-      
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         <div className="card bg-blue-50 border-l-4 border-blue-500">
@@ -204,14 +203,14 @@ const AdminDashboardPage = () => {
             {statusFilter === 'pending' ? sortedTeachers.length : '...'}
           </p>
         </div>
-        
+
         <div className="card bg-green-50 border-l-4 border-green-500">
           <h3 className="text-lg font-semibold text-green-700 mb-2">Approved Teachers</h3>
           <p className="text-3xl font-bold text-green-600">
             {statusFilter === 'approved' ? sortedTeachers.length : '...'}
           </p>
         </div>
-        
+
         <div className="card bg-red-50 border-l-4 border-red-500">
           <h3 className="text-lg font-semibold text-red-700 mb-2">Rejected Applications</h3>
           <p className="text-3xl font-bold text-red-600">

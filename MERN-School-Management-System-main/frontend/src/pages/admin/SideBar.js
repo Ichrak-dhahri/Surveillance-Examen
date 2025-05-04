@@ -10,31 +10,25 @@ import AnnouncementOutlinedIcon from '@mui/icons-material/AnnouncementOutlined';
 import ClassOutlinedIcon from '@mui/icons-material/ClassOutlined';
 import SupervisorAccountOutlinedIcon from '@mui/icons-material/SupervisorAccountOutlined';
 import ReportIcon from '@mui/icons-material/Report';
-import AssignmentIcon from '@mui/icons-material/Assignment';
 
 const SideBar = () => {
     const location = useLocation();
     return (
         <>
             <React.Fragment>
-                <ListItemButton component={Link} to="/">
+               { <ListItemButton component={Link} to="/AdminDashboard">
                     <ListItemIcon>
-                        <HomeIcon color={location.pathname === ("/" || "/Admin/dashboard") ? 'primary' : 'inherit'} />
+                        <HomeIcon  color={location.pathname.startsWith('/AdminDashboard') ? 'primary' : 'inherit'}/>
                     </ListItemIcon>
                     <ListItemText primary="Home" />
-                </ListItemButton>
+                </ListItemButton>}
                 <ListItemButton component={Link} to="/Admin/calendar">
                     <ListItemIcon>
                         <ClassOutlinedIcon color={location.pathname.startsWith('/Admin/calendar') ? 'primary' : 'inherit'} />
                     </ListItemIcon>
                     <ListItemText primary="Répartition  Des Examens" /> 
                 </ListItemButton>
-                {/*<ListItemButton component={Link} to="/Admin/homePage">
-                    <ListItemIcon>
-                        <AssignmentIcon color={location.pathname.startsWith("/Admin/subjects") ? 'primary' : 'inherit'} />
-                    </ListItemIcon>
-                    <ListItemText primary="Subjects" />
-                </ListItemButton>*/}
+         
                 <ListItemButton component={Link} to="/Admin/showTeacher">
                     <ListItemIcon>
                         <SupervisorAccountOutlinedIcon color={location.pathname.startsWith("/showTeacher") ? 'primary' : 'inherit'} />

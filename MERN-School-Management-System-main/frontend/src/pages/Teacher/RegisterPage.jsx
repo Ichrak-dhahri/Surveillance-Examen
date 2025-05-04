@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faEnvelope, faPhone, faBook, faGraduationCap } from '@fortawesome/free-solid-svg-icons';
-import api from '../../utils/api';
+import axios from 'axios';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -26,7 +26,6 @@ const RegisterPage = () => {
       ...formData,
       [name]: value,
     });
-    // Clear error when field is edited
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -38,51 +37,33 @@ const RegisterPage = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-    
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
-    if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
-    }
-    
-    if (!formData.subject) {
-      newErrors.subject = 'Subject is required';
-    }
-    
-    if (!formData.qualifications) {
-      newErrors.qualifications = 'Qualifications are required';
-    }
-    
+    if (!formData.phone) newErrors.phone = 'Phone number is required';
+    if (!formData.subject) newErrors.subject = 'Subject is required';
+    if (!formData.qualifications) newErrors.qualifications = 'Qualifications are required';
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+  
+    if (!validateForm()) return;
+  
     setIsSubmitting(true);
-    
+  
     try {
-      const response = await api.post('/api/teachers', formData);
+      const { data } = await axios.post('http://localhost:5000/teachers/register', formData);
+      setIsSubmitting(false);
       setIsSuccess(true);
-      toast.success('Registration request submitted successfully!');
-      
-      // Reset form
+      toast.success(data.message || 'Registration request submitted successfully!');
       setFormData({
         firstName: '',
         lastName: '',
@@ -91,19 +72,13 @@ const RegisterPage = () => {
         subject: '',
         qualifications: '',
       });
-      
-      // Redirect to success message
-      setTimeout(() => {
-        navigate('/');
-      }, 5000);
+      setTimeout(() => navigate('/'), 5000);
     } catch (error) {
-      console.error('Registration error:', error);
-      const message = error.response?.data?.message || 'Registration failed. Please try again.';
-      toast.error(message);
-    } finally {
       setIsSubmitting(false);
+      toast.error(error.response?.data?.message || 'Registration failed');
     }
   };
+  
 
   if (isSuccess) {
     return (
@@ -116,7 +91,7 @@ const RegisterPage = () => {
           </div>
           <h1 className="text-2xl font-bold text-center text-green-700 mb-4">Registration Successful!</h1>
           <p className="text-center text-gray-700 mb-6">
-            Your registration request has been submitted successfully. The administrator will review your application and you will be notified via email when your account is approved.
+            Your registration request has been submitted. This is a simulated message without backend integration.
           </p>
           <div className="text-center">
             <Link to="/" className="btn btn-primary">
@@ -127,7 +102,6 @@ const RegisterPage = () => {
       </div>
     );
   }
-
   return (
     <div className="max-w-2xl mx-auto fade-in">
       <div className="card">
@@ -261,7 +235,7 @@ const RegisterPage = () => {
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 hover:underline">
+            <Link to="/Teacherlogin" className="text-blue-600 hover:underline">
               Login here
             </Link>
           </p>

@@ -4,7 +4,8 @@ const multer = require('multer');
 
 // Import middlewares
 const { protect, teacher, admin } = require('../middleware/authMiddleware.js');
-
+const planningController = require('../controllers/planningController');
+const schedulingController = require('../controllers/schedulingController');
 // Import controllers
 const {
   registerTeacher,
@@ -33,7 +34,7 @@ const {
 const surveillanceController = require('../controllers/surveillanceController.js');
 const calendrierController = require('../controllers/calendrierController.js');
 const repartitionController = require('../controllers/repartitionController.js');
-const planningController = require('../controllers/planningController.js');
+
 
 // Multer configuration for file uploads
 const upload = multer({ dest: "uploads/" });
@@ -52,9 +53,9 @@ router.get('/auth/status', protect, checkAuthStatus);
 
 // Admin Teachers Requests
 router.get('/admin/teachers', getTeacherRequests);
-router.get('/admin/teachers/:id', protect, admin, getTeacherById);
+router.get('/admin/teachers/:id',getTeacherById);
 router.put('/admin/teachers/:id/approve', approveTeacher);
-router.put('/admin/teachers/:id/reject', protect, admin, rejectTeacher);
+router.put('/admin/teachers/:id/reject',  rejectTeacher);
 
 // Admin Profile
 router.post('/AdminReg', adminRegister);
@@ -77,9 +78,42 @@ router.post('/upload-repartition', upload.single("file"), repartitionController.
 router.get('/repartitions', repartitionController.getAllRepartitions);
 
 /* --------------------------------- Planning Routes --------------------------------- */
-router.get('/check-data', planningController.checkData);
-router.post('/generate-schedule', planningController.generateSchedule);
-router.get('/surveillance-schedule', planningController.getSurveillanceSchedule);
+router.get("/check-data", planningController.checkData);
+
+
+// ====================
+// Nouvelle Route: Génération directe via module d'algorithme
+// ====================
+router.post('/generer-planning', async (req, res) => {
+  try {
+    // Appel à l'algorithme principal pour générer un planning
+    const result = await schedulingController.generateSurveillanceSchedule();
+
+    // Préparer un message selon les statistiques d'optimisation
+    let statsMessage = "Planning généré avec succès.";
+    if (result.stats && result.stats.optimizationStats) {
+      statsMessage += ` Optimisations effectuées: ${result.stats.optimizationStats.changesCount}`;
+    }
+
+    // Retourner la réponse avec le planning et les statistiques
+    res.status(200).json({
+      success: true,
+      message: statsMessage,
+      data: result
+    });
+  } catch (error) {
+    // Gérer les erreurs éventuelles
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la génération du planning",
+      error: error.message
+    });
+  }
+});
+// ====================
+// Nouvelle Route: Export du planning
+// ====================
+router.get("/export-schedule", schedulingController.exportSchedule);
 
 // Export router
 module.exports = router;

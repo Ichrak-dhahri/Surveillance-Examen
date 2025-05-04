@@ -65,23 +65,7 @@ const LoginPage = ({ role }) => {
     if (name === "password") setPasswordError(false);
   };
 
-  const guestModeHandler = () => {
-    const password = "zxc";
-    let email;
-
-    if (role === "Admin") {
-      email = "ichrak@12";
-    } else if (role === "Teacher") {
-      email = "manel@12";
-    }
-
-    if (email) {
-      const fields = { email, password };
-      setGuestLoader(true);
-      dispatch(loginUser(fields, role));
-    }
-  };
-
+ 
   useEffect(() => {
     if (status === "success" || currentUser !== null) {
       if (currentRole === "Admin") {

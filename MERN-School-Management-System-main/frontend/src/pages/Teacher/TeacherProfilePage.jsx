@@ -36,7 +36,7 @@ const TeacherProfilePage = () => {
     const fetchTeacherProfile = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/api/teachers/profile');
+        const response = await api.get('/teachers/profile');
         const { firstName, lastName, email, phone, subject, qualifications } = response.data;
         
         setFormData({
@@ -116,7 +116,7 @@ const TeacherProfilePage = () => {
     
     try {
       setIsSubmitting(true);
-      const response = await api.put('/api/teachers/profile', formData);
+      const response = await api.put('/teachers/profile', formData);
       
       // Update user data in context
       updateUserData({
