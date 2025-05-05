@@ -10,11 +10,14 @@ import AddTeacher from './pages/admin/TeacherRelated/AddTeacher';
 import ShowTeachers from './pages/admin/TeacherRelated/showTeachers';
 import AdminHomePage from './pages/admin/AdminHomePage';
 import MakePlan from './pages/admin/Plan/MakePlan';
-//import TeacherDashbord from './pages/Teacher/TeacherDashbord';
+
 import RegisterPage from "./pages/Teacher/RegisterPage.jsx"
-import LoginnPage from './pages/Teacher/LoginnPage.jsx';
-import AdminDashboardPage from './pages/Teacher/AdminDashboardPage.jsx';
-import TeacherDashboardPage from './pages/Teacher/TeacherDashboardPage.jsx';
+
+//import AdminDashboardPage from './pages/Teacher/AdminDashboardPage';
+
+
+import Home from './pages/Teacher/home.jsx';
+
 const App = () => {
   const { currentRole } = useSelector(state => state.user);
 
@@ -29,12 +32,13 @@ const App = () => {
           <Route path="/Admin/Teachers" element={<AddTeacher />} />
           <Route path="/Admin/showTeacher" element={<ShowTeachers />} />
           <Route path="/Admin/homePage" element={<AdminHomePage />} />
-          <Route path="/Teacherlogin" element={<LoginnPage role="Teacher" />} />
+          <Route path="/Teacherlogin" element={<LoginPage role="Teacher" />} />
           <Route path="/Admin/Plan" element={<MakePlan />} />
           <Route path="/Register" element={<RegisterPage />} />
-          <Route path="/AdminDashboard" element={<AdminDashboardPage  />} />
-          <Route path="/TeacherDashboard" element={<TeacherDashboardPage role="Teacher" />} />
+  <Route path="/Admin/dashboard" element={<AdminDashboard />} /> 
+          <Route path="/Home" element={<Home role="Teacher" />} />
 
+          
           <Route path='*' element={<Navigate to="/" />} />
         </Routes>
       }

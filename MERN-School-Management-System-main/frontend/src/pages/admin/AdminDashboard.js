@@ -21,7 +21,8 @@ import AddTeacher from "./TeacherRelated/AddTeacher";
 import ShowTeachers from "./TeacherRelated/showTeachers";
 import CalendarUpload from "./Reapartition des examen/Calendrier";
 import MakePlan from "./Plan/MakePlan";
-
+import AdminDashboardPage from "./AdminDashboardPage";
+ 
 const AdminDashboard = () => {
   const [open, setOpen] = useState(false);
   const toggleDrawer = () => {
@@ -53,7 +54,7 @@ const AdminDashboard = () => {
               noWrap
               sx={{ flexGrow: 1 }}
             >
-              Admin Dashboard
+              Admin Account
             </Typography>
             <AccountMenu />
           </Toolbar>
@@ -91,7 +92,7 @@ const AdminDashboard = () => {
           <Toolbar />
           <Routes>
             <Route path="/" element={<AdminHomePage />} />
-            <Route path="/Admin/dashboard" element={<AdminHomePage />} />
+            <Route path="/Admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="/Admin/profile" element={<AdminProfile />} />
             <Route path="/Admin/Teachers" element={<AddTeacher />} />
             <Route path="/Admin/showTeacher" element={<ShowTeachers />} />

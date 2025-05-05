@@ -1,9 +1,25 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faPhone, faBook, faGraduationCap } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
+import {
+  Box,
+  Grid,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  InputAdornment,
+  CircularProgress,
+} from '@mui/material';
+import {
+  Person as PersonIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  School as SchoolIcon,
+  Grade as GradeIcon,
+  CheckCircle as CheckCircleIcon,
+} from '@mui/icons-material';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -17,7 +33,7 @@ const RegisterPage = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -36,7 +52,6 @@ const RegisterPage = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!formData.email) {
@@ -54,11 +69,9 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
     if (!validateForm()) return;
-  
+
     setIsSubmitting(true);
-  
     try {
       const { data } = await axios.post('http://localhost:5000/teachers/register', formData);
       setIsSubmitting(false);
@@ -78,170 +91,113 @@ const RegisterPage = () => {
       toast.error(error.response?.data?.message || 'Registration failed');
     }
   };
-  
 
   if (isSuccess) {
     return (
-      <div className="max-w-md mx-auto fade-in">
-        <div className="card border-green-500 bg-green-50">
-          <div className="text-center mb-6">
-            <div className="inline-block bg-green-100 text-green-500 p-3 rounded-full">
-              <FontAwesomeIcon icon={faGraduationCap} size="3x" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-center text-green-700 mb-4">Registration Successful!</h1>
-          <p className="text-center text-gray-700 mb-6">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Paper elevation={6} sx={{ p: 4, maxWidth: 500, textAlign: 'center' }}>
+          <CheckCircleIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
+          <Typography variant="h5" fontWeight="bold" color="success.main">
+            Registration Successful!
+          </Typography>
+          <Typography sx={{ mt: 2, mb: 3 }}>
             Your registration request has been submitted. This is a simulated message without backend integration.
-          </p>
-          <div className="text-center">
-            <Link to="/" className="btn btn-primary">
-              Return to Home
-            </Link>
-          </div>
-        </div>
-      </div>
+          </Typography>
+          <Button variant="contained" component={Link} to="/" color="primary">
+            Return to Home
+          </Button>
+        </Paper>
+      </Box>
     );
   }
+
   return (
-    <div className="max-w-2xl mx-auto fade-in">
-      <div className="card">
-        <h1 className="text-2xl font-bold text-center mb-6">Teacher Pre-Registration</h1>
-        <p className="text-gray-600 text-center mb-6">
-          Please fill out the form below to submit your registration request. Once approved, you will receive login credentials via email.
-        </p>
-        
+    <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh" px={2}>
+      <Paper elevation={3} sx={{ p: 4, maxWidth: 800, width: '100%' }}>
+        <Typography variant="h4" textAlign="center" gutterBottom fontWeight="bold">
+          Teacher Pre-Registration
+        </Typography>
+        <Typography variant="body1" textAlign="center" sx={{ mb: 3 }}>
+          Please fill out the form below to submit your registration request.
+          Once approved, you will receive login credentials via email.
+        </Typography>
+
         <form onSubmit={handleSubmit}>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="form-group">
-              <label htmlFor="firstName" className="form-label">
-                <FontAwesomeIcon icon={faUser} className="mr-2" />
-                First Name
-              </label>
-              <input
-                type="text"
-                id="firstName"
-                name="firstName"
-                className={`form-input ${errors.firstName ? 'border-red-500' : ''}`}
-                placeholder="Enter your first name"
-                value={formData.firstName}
+          <Grid container spacing={2}>
+            {[
+              { label: 'First Name', name: 'firstName', icon: <PersonIcon /> },
+              { label: 'Last Name', name: 'lastName', icon: <PersonIcon /> },
+              { label: 'Email Address', name: 'email', icon: <EmailIcon /> },
+              { label: 'Phone Number', name: 'phone', icon: <PhoneIcon /> },
+              { label: 'Subject', name: 'subject', icon: <SchoolIcon /> },
+            ].map((field, index) => (
+              <Grid item xs={12} md={6} key={index}>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  label={field.label}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={handleChange}
+                  disabled={isSubmitting}
+                  error={Boolean(errors[field.name])}
+                  helperText={errors[field.name]}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">{field.icon}</InputAdornment>,
+                  }}
+                />
+              </Grid>
+            ))}
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                multiline
+                rows={4}
+                label="Qualifications"
+                name="qualifications"
+                value={formData.qualifications}
                 onChange={handleChange}
                 disabled={isSubmitting}
+                error={Boolean(errors.qualifications)}
+                helperText={errors.qualifications}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <GradeIcon />
+                    </InputAdornment>
+                  ),
+                }}
               />
-              {errors.firstName && <div className="form-error">{errors.firstName}</div>}
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="lastName" className="form-label">
-                <FontAwesomeIcon icon={faUser} className="mr-2" />
-                Last Name
-              </label>
-              <input
-                type="text"
-                id="lastName"
-                name="lastName"
-                className={`form-input ${errors.lastName ? 'border-red-500' : ''}`}
-                placeholder="Enter your last name"
-                value={formData.lastName}
-                onChange={handleChange}
+            </Grid>
+
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                type="submit"
+                sx={{ py: 1.5 }}
                 disabled={isSubmitting}
-              />
-              {errors.lastName && <div className="form-error">{errors.lastName}</div>}
-            </div>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="form-group">
-              <label htmlFor="email" className="form-label">
-                <FontAwesomeIcon icon={faEnvelope} className="mr-2" />
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                className={`form-input ${errors.email ? 'border-red-500' : ''}`}
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isSubmitting}
-              />
-              {errors.email && <div className="form-error">{errors.email}</div>}
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="phone" className="form-label">
-                <FontAwesomeIcon icon={faPhone} className="mr-2" />
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                className={`form-input ${errors.phone ? 'border-red-500' : ''}`}
-                placeholder="Enter your phone number"
-                value={formData.phone}
-                onChange={handleChange}
-                disabled={isSubmitting}
-              />
-              {errors.phone && <div className="form-error">{errors.phone}</div>}
-            </div>
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="subject" className="form-label">
-              <FontAwesomeIcon icon={faBook} className="mr-2" />
-              Subject
-            </label>
-            <input
-              type="text"
-              id="subject"
-              name="subject"
-              className={`form-input ${errors.subject ? 'border-red-500' : ''}`}
-              placeholder="Enter your teaching subject"
-              value={formData.subject}
-              onChange={handleChange}
-              disabled={isSubmitting}
-            />
-            {errors.subject && <div className="form-error">{errors.subject}</div>}
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="qualifications" className="form-label">
-              <FontAwesomeIcon icon={faGraduationCap} className="mr-2" />
-              Qualifications
-            </label>
-            <textarea
-              id="qualifications"
-              name="qualifications"
-              rows="4"
-              className={`form-input ${errors.qualifications ? 'border-red-500' : ''}`}
-              placeholder="Enter your qualifications and teaching experience"
-              value={formData.qualifications}
-              onChange={handleChange}
-              disabled={isSubmitting}
-            ></textarea>
-            {errors.qualifications && <div className="form-error">{errors.qualifications}</div>}
-          </div>
-          
-          <button 
-            type="submit" 
-            className="btn btn-primary w-full py-3 mt-4"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Registration Request'}
-          </button>
+                startIcon={isSubmitting && <CircularProgress size={20} />}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Registration Request'}
+              </Button>
+            </Grid>
+          </Grid>
         </form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
+
+        <Box textAlign="center" mt={4}>
+          <Typography variant="body2">
             Already have an account?{' '}
-            <Link to="/Teacherlogin" className="text-blue-600 hover:underline">
+            <Link to="/Teacherlogin" style={{ color: '#1976d2', textDecoration: 'none' }}>
               Login here
             </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+          </Typography>
+        </Box>
+      </Paper>
+    </Box>
   );
 };
 

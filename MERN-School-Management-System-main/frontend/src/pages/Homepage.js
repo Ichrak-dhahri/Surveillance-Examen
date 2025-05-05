@@ -25,13 +25,14 @@ const Homepage = () => {
               </span>
 
               <h1 className="display-4 fw-bold">
-                VOUS SOUHAITE
-                <span className="d-block text-purple mt-2">LA BIENVENUE</span>
-              </h1>
+  WISHES YOU
+  <span className="d-block text-purple mt-2">WELCOME</span>
+</h1>
 
-              <p className="lead text-secondary">
-                Prenons l'initiative ensemble, améliorons notre ISSAT
-              </p>
+<p className="lead text-secondary">
+  Let's take the initiative together, let's improve our ISSAT
+</p>
+
 
               <div className="d-flex flex-column gap-3">
                 <Link 

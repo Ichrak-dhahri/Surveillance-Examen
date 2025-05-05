@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-
 import TableViewTemplate from '../../../components/TableViewTemplate';
 
 const columns = [
@@ -10,87 +9,125 @@ const columns = [
   { id: 'salle', label: 'Salle', minWidth: 100 },
   { id: 'enseignant1', label: 'Enseignant 1', minWidth: 150 },
   { id: 'enseignant2', label: 'Enseignant 2', minWidth: 150 },
-  { id: 'action', label: 'Action', minWidth: 100 }, // Nouvelle colonne
-];
-
-const rows = [
-  {
-    id: 1,
-    date: '2025-04-12',
-    seance: '08:00 - 10:00',
-    salle: 'A101',
-    enseignant1: 'Mme Ben Ali',
-    enseignant2: 'M. Khemiri',
-  },
-  {
-    id: 2,
-    date: '2025-04-13',
-    seance: '10:00 - 12:00',
-    salle: 'B202',
-    enseignant1: 'M. Trabelsi',
-    enseignant2: 'Mme Gharbi',
-  },
-  {
-    id: 3,
-    date: '2025-04-14',
-    seance: '14:00 - 16:00',
-    salle: 'C303',
-    enseignant1: 'Mme Jaziri',
-    enseignant2: 'M. Haddad',
-  },
+  { id: 'action', label: 'Action', minWidth: 100 },
 ];
 
 const ModifierButton = ({ row }) => {
   const handleClick = () => {
     console.log('Modifier la ligne :', row);
-    // Tu peux ouvrir un modal ici si tu veux
   };
 
   return (
-    <button
-      onClick={handleClick}
-      style={{
-        padding: '6px 12px',
-        border: 'none',
-        backgroundColor: '#007bff',
-        color: 'white',
-        borderRadius: '4px',
-        cursor: 'pointer',
-      }}
-    >
-      Modifier
-    </button>
+    <button onClick={handleClick} style={btnStyle}>Modifier</button>
   );
 };
 
 const MakePlan = () => {
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    doc.text('Planification des Séances', 14, 15);
-    const tableColumn = columns.filter(col => col.id !== 'action').map(col => col.label);
-    const tableRows = rows.map(row => [
-      row.date,
-      row.seance,
-      row.salle,
-      row.enseignant1,
-      row.enseignant2,
-    ]);
-    doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 20,
-    });
-    doc.save('planification.pdf');
-  };
+  const [rows, setRows] = useState([]);
 
-  const handleAffecter = () => {
-    console.log('Affecter clicked');
-    // Implémente ta logique ici
-  };
+  useEffect(() => {
+    fetch('http://localhost:5000/resultats') // adapte l'URL si nécessaire
+      .then(response => response.json())
+      .then(data => {
+        const transformedRows = data.data.map((item, index) => ({
+          id: index + 1,
+          date: item.date,
+          seance: item.seance,
+          salle: item.salle,
+          enseignant1: item.professeur_surveillant1,
+          enseignant2: item.professeur_surveillant2,
+        }));
+        setRows(transformedRows);
+      })
+      .catch(error => {
+        console.error('Erreur de chargement des données :', error);
+      });
+  }, []);
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/');
+      const data = await response.json();
+  
+      const transformedRows = data.data.map((item, index) => ({
+        id: index + 1,
+        date: item.date,
+        seance: item.seance,
+        salle: item.salle,
+        enseignant1: item.professeur_surveillant1,
+        enseignant2: item.professeur_surveillant2,
+        action: <ModifierButton row={item} />
+      }));
+  
+      // Générer le PDF avec les données fraîchement chargées
+      const doc = new jsPDF();
+      doc.text('Planification des Séances', 14, 15);
+      const tableColumn = columns.filter(col => col.id !== 'action').map(col => col.label);
+      const tableRows = transformedRows.map(row => [
+        row.date,
+        row.seance,
+        row.salle,
+        row.enseignant1,
+        row.enseignant2,
+      ]);
+      doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+      });
+      doc.save('planification.pdf');
+  
+      // Optionnel : mettre à jour le tableau dans l’interface
+      setRows(transformedRows);
+  
+    } catch (error) {
+      console.error('Erreur lors de l’export PDF :', error);
+      alert('Erreur lors de l’export PDF');
+    }
+  };
+  
+
+  const handleAffecter = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/generer-planning', {
+        method: 'POST',
+      });
+  
+      const result = await response.json();
+  
+      if (result.success) {
+        alert('Planning généré avec succès !');
+  
+        // Recharge les données depuis la base après génération
+        const reloadResponse = await fetch('http://localhost:5000/');
+        const reloadData = await reloadResponse.json();
+  
+        const transformedRows = reloadData.data.map((item, index) => ({
+          id: index + 1,
+          date: item.date,
+          seance: item.seance,
+          salle: item.salle,
+          enseignant1: item.professeur_surveillant1,
+          enseignant2: item.professeur_surveillant2,
+        }));
+  
+        setRows(transformedRows);
+      } else {
+        alert('Erreur : ' + result.message);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la génération du planning:', error);
+      alert('Erreur lors de la génération du planning');
+    }
+  };
+  
+  
   const handleVider = () => {
     console.log('Vider clicked');
-    // Implémente ta logique ici
+  };
+  
+  const handleExportPlanning = () => {
+    window.open(' http://localhost:5000/export-schedule?format=pdf&download=true', '_blank');
   };
 
   return (
@@ -108,7 +145,11 @@ const MakePlan = () => {
       <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
         <button onClick={handleAffecter} style={btnStyle}>Affecter</button>
         <button onClick={handleVider} style={btnStyle}>Vider</button>
-        <button onClick={handleExportPDF} style={{ ...btnStyle, backgroundColor: '#28a745' }}>Exporter</button>
+    
+          {/* 🔽 Nouveau bouton pour export via backend */}
+  <button onClick={handleExportPlanning} style={{ ...btnStyle, backgroundColor: '#6c757d' }}>
+    Exporter Planning
+  </button>      
       </div>
     </div>
   );

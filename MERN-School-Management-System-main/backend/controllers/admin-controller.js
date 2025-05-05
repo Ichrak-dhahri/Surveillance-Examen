@@ -40,23 +40,24 @@ const adminLogIn = async (req, res) => {
         if (req.body.email && req.body.password) {
             let admin = await Admin.findOne({ email: req.body.email });
             if (admin) {
-                // Utiliser la méthode matchPassword pour comparer les mots de passe hachés
                 const isMatch = await admin.matchPassword(req.body.password);
                 
                 if (isMatch) {
-                    // Ne pas envoyer le mot de passe dans la réponse
                     const adminData = {
                         _id: admin._id,
                         name: admin.name,
                         email: admin.email,
                         role: admin.role,
                     };
-                    
-                    // Ajouter schoolName si présent
+
                     if (admin.schoolName) {
                         adminData.schoolName = admin.schoolName;
                     }
-                    
+
+                    // ✅ GENERATE TOKEN HERE
+                    const token = generateToken(admin._id, 'admin');
+                    adminData.token = token;
+
                     res.send(adminData);
                 } else {
                     res.send({ message: "Invalid password" });
@@ -72,6 +73,7 @@ const adminLogIn = async (req, res) => {
         res.status(500).json({ message: "Server error during login" });
     }
 };
+
 
 const getAdminDetail = async (req, res) => {
     try {

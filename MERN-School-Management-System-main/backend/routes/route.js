@@ -4,8 +4,14 @@ const multer = require('multer');
 
 // Import middlewares
 const { protect, teacher, admin } = require('../middleware/authMiddleware.js');
+
+const surveillanceController = require('../controllers/surveillanceController');
+const calendrierController = require('../controllers/calendrierController');
+const repartitionController = require('../controllers/repartitionController');
 const planningController = require('../controllers/planningController');
 const schedulingController = require('../controllers/schedulingController');
+const resultatController = require('../controllers/resultatController');
+
 // Import controllers
 const {
   registerTeacher,
@@ -30,10 +36,6 @@ const {
   adminLogIn,
   getAdminDetail
 } = require('../controllers/admin-controller.js');
-
-const surveillanceController = require('../controllers/surveillanceController.js');
-const calendrierController = require('../controllers/calendrierController.js');
-const repartitionController = require('../controllers/repartitionController.js');
 
 
 // Multer configuration for file uploads
@@ -81,9 +83,11 @@ router.get('/repartitions', repartitionController.getAllRepartitions);
 router.get("/check-data", planningController.checkData);
 
 
-// ====================
+/* ---------------------------------  Routes Planification --------------------------------- */
+router.get("/check-data", planningController.checkData);
+
 // Nouvelle Route: Génération directe via module d'algorithme
-// ====================
+
 router.post('/generer-planning', async (req, res) => {
   try {
     // Appel à l'algorithme principal pour générer un planning
@@ -110,10 +114,15 @@ router.post('/generer-planning', async (req, res) => {
     });
   }
 });
-// ====================
+
 // Nouvelle Route: Export du planning
-// ====================
 router.get("/export-schedule", schedulingController.exportSchedule);
+
+//CRUD
+router.get('/', resultatController.getAllResultats);
+
+// GET /api/resultats/stats - Obtenir des statistiques sur les affectations
+router.get('/stats',resultatController.getResultatsStats);
 
 // Export router
 module.exports = router;

@@ -16,11 +16,11 @@ const SideBar = () => {
     return (
         <>
             <React.Fragment>
-               { <ListItemButton component={Link} to="/AdminDashboard">
+               { <ListItemButton component={Link} to="/Admin/dashboard">
                     <ListItemIcon>
-                        <HomeIcon  color={location.pathname.startsWith('/AdminDashboard') ? 'primary' : 'inherit'}/>
+                        <HomeIcon  color={location.pathname.startsWith('/Admin/dashboard') ? 'primary' : 'inherit'}/>
                     </ListItemIcon>
-                    <ListItemText primary="Home" />
+                    <ListItemText primary="Users Management" />
                 </ListItemButton>}
                 <ListItemButton component={Link} to="/Admin/calendar">
                     <ListItemIcon>
@@ -28,7 +28,7 @@ const SideBar = () => {
                     </ListItemIcon>
                     <ListItemText primary="Répartition  Des Examens" /> 
                 </ListItemButton>
-         
+                
                 <ListItemButton component={Link} to="/Admin/showTeacher">
                     <ListItemIcon>
                         <SupervisorAccountOutlinedIcon color={location.pathname.startsWith("/showTeacher") ? 'primary' : 'inherit'} />
